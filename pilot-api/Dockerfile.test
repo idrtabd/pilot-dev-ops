@@ -1,0 +1,15 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json yarn.lock* ./
+
+# Install all dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy source code and tests
+COPY . .
+
+# Default command for tests
+CMD ["yarn", "test"]
