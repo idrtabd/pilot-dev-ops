@@ -11,12 +11,12 @@ export const errorHandler = (
   err: ApiError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   // Default error values
   let statusCode = err.statusCode || 500;
   let message = err.message || 'Internal Server Error';
-  let errors: any = undefined;
+  let errors: Array<{ field: string; message: string }> | undefined = undefined;
 
   // Handle Zod validation errors
   if (err instanceof ZodError) {

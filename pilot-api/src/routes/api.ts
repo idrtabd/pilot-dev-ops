@@ -54,9 +54,7 @@ apiRouter.get('/items/:id', async (req, res) => {
   });
 });
 
-apiRouter.delete('/items/:id', async (req, res) => {
-  const { id } = req.params;
-  
+apiRouter.delete('/items/:id', async (_req, res) => {
   // TODO: Implement database deletion
   res.status(204).send();
 });
