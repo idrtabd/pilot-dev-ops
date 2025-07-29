@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react'
+import { DataGrid, Column, Editing, Paging, FilterRow } from 'devextreme-react/data-grid'
+import { Button } from 'devextreme-react/button'
+import { TextBox } from 'devextreme-react/text-box'
+import notify from 'devextreme/ui/notify'
 import './App.css'
 
 interface Item {
@@ -21,7 +25,6 @@ function App() {
   const [items, setItems] = useState<Item[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [newItemName, setNewItemName] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchHealth();
@@ -39,21 +42,20 @@ function App() {
   };
 
   const fetchItems = async () => {
-    setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/items`);
       const data = await response.json();
       setItems(data.items);
     } catch (error) {
       console.error('Failed to fetch items:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const createItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItemName.trim()) return;
+  const createItem = async () => {
+    if (!newItemName.trim()) {
+      notify('Please enter an item name', 'warning', 2000);
+      return;
+    }
 
     try {
       const response = await fetch(`${API_URL}/api/items`, {
@@ -65,17 +67,35 @@ function App() {
       if (response.ok) {
         setNewItemName('');
         fetchItems();
+        notify('Item created successfully!', 'success', 2000);
       }
     } catch (error) {
       console.error('Failed to create item:', error);
+      notify('Failed to create item', 'error', 2000);
+    }
+  };
+
+  const deleteItem = async (id: number) => {
+    try {
+      const response = await fetch(`${API_URL}/api/items/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        fetchItems();
+        notify('Item deleted successfully!', 'success', 2000);
+      }
+    } catch (error) {
+      console.error('Failed to delete item:', error);
+      notify('Failed to delete item', 'error', 2000);
     }
   };
 
   return (
-    <>
+    <div className="app-container">
       <h1>DevOps Pilot Application</h1>
       
-      <div className="health-status">
+      <div className="health-status dx-card">
         <h2>System Health</h2>
         {health ? (
           <div>
@@ -87,33 +107,65 @@ function App() {
         )}
       </div>
 
-      <div className="card">
+      <div className="dx-card">
         <h2>Items Management</h2>
         
-        <form onSubmit={createItem} className="item-form">
-          <input
-            type="text"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            placeholder="Enter item name"
+        <div className="item-form dx-fieldset">
+          <div className="dx-field">
+            <div className="dx-field-label">New Item:</div>
+            <div className="dx-field-value">
+              <TextBox
+                value={newItemName}
+                onValueChanged={(e) => setNewItemName(e.value)}
+                placeholder="Enter item name"
+                width="300px"
+              />
+            </div>
+          </div>
+          <Button
+            text="Add Item"
+            type="success"
+            icon="add"
+            onClick={createItem}
           />
-          <button type="submit">Add Item</button>
-        </form>
+        </div>
 
-        {loading ? (
-          <p>Loading items...</p>
-        ) : (
-          <ul className="items-list">
-            {items.map((item) => (
-              <li key={item.id}>
-                <strong>{item.name}</strong>
-                <span className={`priority ${item.priority}`}>{item.priority}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        <DataGrid
+          dataSource={items}
+          showBorders={true}
+          showRowLines={true}
+          rowAlternationEnabled={true}
+          columnAutoWidth={true}
+        >
+          <Paging defaultPageSize={10} />
+          <FilterRow visible={true} />
+          <Editing
+            mode="row"
+            allowDeleting={true}
+            confirmDelete={true}
+          />
+          
+          <Column dataField="id" caption="ID" width={70} />
+          <Column dataField="name" caption="Name" />
+          <Column 
+            dataField="priority" 
+            caption="Priority"
+            cellRender={(data) => (
+              <span className={`priority ${data.value}`}>{data.value}</span>
+            )}
+          />
+          <Column
+            type="buttons"
+            width={110}
+            buttons={[{
+              name: 'delete',
+              icon: 'trash',
+              onClick: (e) => e.row && deleteItem(e.row.data.id)
+            }]}
+          />
+        </DataGrid>
       </div>
-    </>
+    </div>
   )
 }
 
