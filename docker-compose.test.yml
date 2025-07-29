@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (Test)
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: pilot-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: testpassword
+      POSTGRES_DB: pilot_db_test
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - pilot-network-test
+
+  # API Tests
+  api-test:
+    build:
+      context: ./pilot-api
+      dockerfile: Dockerfile.test
+    container_name: pilot-api-test
+    environment:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:testpassword@postgres-test:5432/pilot_db_test
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    command: yarn test:e2e
+    networks:
+      - pilot-network-test
+
+  # Frontend Tests
+  frontend-test:
+    build:
+      context: ./pilot-react
+      dockerfile: Dockerfile.test
+    container_name: pilot-frontend-test
+    environment:
+      - CI=true
+    command: yarn test
+    networks:
+      - pilot-network-test
+
+  # E2E Tests (Cypress)
+  e2e-test:
+    image: cypress/included:latest
+    container_name: pilot-e2e-test
+    environment:
+      - CYPRESS_baseUrl=http://frontend:80
+      - CYPRESS_API_URL=http://api:3000
+    volumes:
+      - ./cypress:/cypress
+      - ./cypress.config.js:/cypress.config.js
+    depends_on:
+      - api
+      - frontend
+    command: cypress run
+    networks:
+      - pilot-network-test
+
+networks:
+  pilot-network-test:
+    driver: bridge
