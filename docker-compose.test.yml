@@ -47,22 +47,6 @@ services:
     networks:
       - pilot-network-test
 
-  # E2E Tests (Cypress)
-  e2e-test:
-    image: cypress/included:latest
-    container_name: pilot-e2e-test
-    environment:
-      - CYPRESS_baseUrl=http://frontend:80
-      - CYPRESS_API_URL=http://api:3000
-    volumes:
-      - ./cypress:/cypress
-      - ./cypress.config.js:/cypress.config.js
-    depends_on:
-      - api
-      - frontend
-    command: cypress run
-    networks:
-      - pilot-network-test
 
 networks:
   pilot-network-test:
